@@ -20,7 +20,7 @@ STO = Sample(
 NNO = Sample(
   structure = Sample.perovskite(Nd,Ni,O),
   abc = STO.const_volume_abc(Sample.pseudocubic(np.array([5.387, 5.383, 7.610]) * 1E-10)),
-  NaNbNc = (*AREA, 1),
+  NaNbNc = (10, 10, 1),
   nhkl= np.array([0, 0, 1])
 )
 ```
