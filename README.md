@@ -1,7 +1,7 @@
-# 안녕하세요 교수님
-
-- 깃허브로 옮겼습니다.
-
+# XRD-Analysis Simulation
+## Current Limitations (Future Steps)
+- available on epitaxial film
+- only one bulk + one film
 
 ## Usage
 
