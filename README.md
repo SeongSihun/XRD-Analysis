@@ -34,7 +34,6 @@ detector = Detector(
   pixel_length = 0.005,
   size         = (100, 100)
 )
-
 ```
 
 ### Experiment Setting (Condition)
@@ -43,5 +42,11 @@ detector = Detector(
 hkl = np.array([0, 1, 2])
 ```
 
-### Result
+### Result & Plot
+```
+# Result (Pixel-Intensity)
 II = detector.scan(hkl, (alpha, phi))
+
+# Plot
+plt.imshow(II.T)
+```
