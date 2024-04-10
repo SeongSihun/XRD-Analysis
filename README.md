@@ -1,60 +1,75 @@
-# XRD-Analysis Simulation
-## Current Limitations (Future Steps)
-- available on epitaxial film (of which every nhkl have the same orientation as the substrate.)
-- available only where nhkl (by pseudo) is parallel to (001), (010), or (100).
+# CTR Analysis (VER 3)
+## Available Functions (~ Now)
+- Atomic Form Factor
+- Structure Factor
+<!-- - available on epitaxial film (of which every nhkl have the same orientation as the substrate.)
+- available only where nhkl (by pseudo) is parallel to (001), (010), or (100). -->
 
 ## Usage
 
-### Sample Settings
+### Xray Setting
 ```
-# 원자번호
-Sr, Ti, O = (38, 22, 8)
-Nd, Ni, _ = (60, 28, 0)
-_ , Ga, _ = ( 0, 31, 0)
+CuKa1   = Xray(Xray.CuKa1)
+# CuKa1 = Xray(wavelength = 1.5406) # Å unit
+```
 
-# Sample Objects
-STO = Sample(
-  structure = Sample.perovskite(A=Sr, B=Ti, O=O),
-  abc = np.array([3.905, 3.905, 3.905]) * 1E-10,
-  NaNbNc = (10, 10, 20),
-  nhkl= np.array([0, 0, 1])
+### Atoms
+```
+# using atomic number Z
+Sr = Atom(38)
+Ti = Atom(22)
+O  = Atom(8)
+Ru = Atom(44)
+```
+
+### Molecules
+```
+# Å unit
+sto = Molecule(
+    structure = Molecule.perovskite(Sr, Ti, O),
+    abc = (3.905, 3.905, 3.905)
 )
-NNO = Sample(
-  structure = Sample.perovskite(Nd,Ni,O),
-  abc = STO.const_volume_abc(Sample.pseudocubic(np.array([5.387, 5.383, 7.610]) * 1E-10)),
-  NaNbNc = (10, 10, 1),
-  nhkl= np.array([0, 0, 1])
+sro = Molecule(
+    structure = Molecule.perovskite(Sr, Ru, O),
+    abc = Molecule.pseudocubic(5.567, 5.5304, 7.8446)
 )
-NGO = Sample(
-  structure = Sample.perovskite(Nd,Ga,O),
-  abc = STO.const_volume_abc(Sample.pseudocubic(np.array([5.428, 5.498, 7.708]) * 1E-10)),
-  NaNbNc = (10, 10, 3),
-  nhkl= np.array([0, 0, 1])
-)
+# strained molecules (constant volume)
+sro_sto = sro/sto   # = sto.strain(sro)
+nno_sto = nno/sto   # = sto.strain(nno)
 ```
 
-### Detector Settings
+### Films
 ```
-# Detector Object
-detector = Detector(
-  wavelength   = 1.5406e-10,
-  samples      = (STO, NNO, NGO),
-  pixel_length = 0.005,
-  size         = (100, 100)
-)
+STO = Film(sto, (10, 10, 100))
+SRO = Film(sro, (10, 10, 10))
+#
+SRO_sto = Film(sro/sto, (10, 10, 100))
 ```
 
-### Experiment Setting (Condition)
+### Samples
 ```
-(alpha, phi) = 0.1, 0
-hkl = np.array([0, 1, 2])
+SRO_STO = Sample(SRO_sto/STO)
+NNO_SRO_STO = Sample(NNO/SRO/STO)
 ```
 
-### Result & Plot
+### Detector
 ```
-# Result (Pixel-Intensity)
-II = detector.scan(hkl, (alpha, phi))
+XRD = Detector(Xray, [Atom], [Molecule], [Film], [Sample])
+```
 
-# Plot
-plt.imshow(II.T)
+#### AFF scan
+```
+XRD = Detector(CuKa1, atom = [Sr, Ti, O])
+AFF = XRD.AFF(REF=True)
+#
+plt.plot(XRD.TTHETA, AFF[0], label='Sr')
+```
+
+#### SF scan
+```
+XRD = Detector(CuKa1, molecule=[sro, sro_sto])
+XRD.align(nref = [sro(0,0,1), sro_sto(0,0,1)])
+SF  = XRD.SF()
+#
+plt.plot(XRD.TTHETA, np.abs(SF[0]), label='sro', linestyle='dashed')
 ```
