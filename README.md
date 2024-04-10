@@ -52,6 +52,8 @@ SRO_STO = Sample(SRO_sto/STO)
 NNO_SRO_STO = Sample(NNO/SRO/STO)
 ```
 
+---
+
 ### Detector
 ```
 XRD = Detector(Xray, [Atom], [Molecule], [Film], [Sample])
