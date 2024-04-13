@@ -2,6 +2,8 @@
 ## Available Functions (~ Now)
 - Atomic Form Factor
 - Structure Factor
+- Slit fuNction
+- Scattering Amplitude, ER
 <!-- - available on epitaxial film (of which every nhkl have the same orientation as the substrate.)
 - available only where nhkl (by pseudo) is parallel to (001), (010), or (100). -->
 
@@ -73,5 +75,24 @@ XRD = Detector(CuKa1, molecule=[sro, sro_sto])
 XRD.align(nref = [sro(0,0,1), sro_sto(0,0,1)])
 SF  = XRD.SF()
 #
-plt.plot(XRD.TTHETA, np.abs(SF[0]), label='sro', linestyle='dashed')
+plt.plot(XRD.TTHETA, np.abs(SF[0])**2, label='sro', linestyle='dashed')
 ```
+
+#### SN scan
+```
+XRD = Detector(CuKa1, film=[Film(sto, (1,1,inf)), SRO])
+XRD.align(nref = [STO(0,0,1), SRO(0,0,1)])
+SN  = XRD.SN()
+#
+plt.plot(XRD.DEGREE, np.abs(SN[0])**2, label='STO_substrate')
+```
+
+#### ER scan
+```
+XRD = Detector(CuKa1, film=Film(sto, (1,1,inf)))
+XRD.align(nref = STO(0,0,1))
+ER  = XRD.ER()
+#
+plt.plot(XRD.DEGREE, np.abs(ER)**2, label='STO_substrate')
+```
+
