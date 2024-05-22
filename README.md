@@ -1,18 +1,13 @@
-# CTR Analysis (VER 3)
-## Available Functions (~ Now)
-- Atomic Form Factor
-- Structure Factor
-- Slit fuNction
-- Scattering Amplitude, ER
-<!-- - available on epitaxial film (of which every nhkl have the same orientation as the substrate.)
-- available only where nhkl (by pseudo) is parallel to (001), (010), or (100). -->
+# CTR.py !!
 
 ## Usage
 
 ### Xray Setting
 ```
-CuKa1   = Xray(Xray.CuKa1)
-# CuKa1 = Xray(wavelength = 1.5406) # Å unit
+XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
+Q = XRD.Q(1,0,0) # (100) Scan
+E = XRD.Energy
+TTHETA = XRD.TTHETA
 ```
 
 ### Atoms
@@ -26,73 +21,70 @@ Ru = Atom(44)
 
 ### Molecules
 ```
-# Å unit
-sto = Molecule(
-    structure = Molecule.perovskite(Sr, Ti, O),
-    abc = (3.905, 3.905, 3.905)
+sto = Perovskite(
+    abc = 3.905 * vec(1, 1, 1),
+    ABO = (Sr, Ti, O)
 )
-sro = Molecule(
-    structure = Molecule.perovskite(Sr, Ru, O),
-    abc = Molecule.pseudocubic(5.567, 5.5304, 7.8446)
+yap = Perovskite(
+    abc = Molecule.pseudocubic(5.18, 5.32, 7.37),
+    ABO = (Y, Al, O)
+)
+wo3 = Molecule(
+    abc = vec(7.69, 7.69, 7.76)/2,
+    structure = [
+            W(0.5, 0.5, 0.5),
+            *[O(*rj) for rj in (np.ones([3, 3]) - np.eye(3))/2]
+        ]
 )
 # strained molecules (constant volume)
-sro_sto = sro/sto   # = sto.strain(sro)
-nno_sto = nno/sto   # = sto.strain(nno)
+sro_sto = sro/sto 
+nno_sto = nno/sto
 ```
 
 ### Films
 ```
-STO = Film(sto, (10, 10, 100))
-SRO = Film(sro, (10, 10, 10))
-#
-SRO_sto = Film(sro/sto, (10, 10, 100))
+# Bulk
+WO3_Bulk = Film(wo3, (inf,1,1))
+YAP_Bulk = Film(yap, (inf,1,1))
+# Film
+WO3 = Film(wo3, (10,1,1))
+YAP = Film(yap, (10,1,1))
+# Strained Film
+WO3_YAP = Film(wo3/yap, (10,1,1))
 ```
 
 ### Samples
 ```
-SRO_STO = Sample(SRO_sto/STO)
-NNO_SRO_STO = Sample(NNO/SRO/STO)
+WO3YAP = Sample(WO3_YAP, YAP_Bulk)
+NNONGOSTO = Sample(NNO,NGO,STO_Bulk)
 ```
 
 ---
 
-### Detector
+### Scan
+
+#### Atom scan (AFF)
 ```
-XRD = Detector(Xray, [Atom], [Molecule], [Film], [Sample])
+plt.plot(TTHETA, np.abs(Sr.aff(Q, E)), color='#800020', label='Sr')
+plt.plot(TTHETA, np.abs(Ti.aff(Q, E)), color='#008060', label='Ti')
+plt.plot(TTHETA, np.abs(O.aff(Q, E)), color='#006080', label='O')
 ```
 
-#### AFF scan
+#### Molecule scan (SF)
 ```
-XRD = Detector(CuKa1, atom = [Sr, Ti, O])
-AFF = XRD.AFF(REF=True)
-#
-plt.plot(XRD.TTHETA, AFF[0], label='Sr')
-```
-
-#### SF scan
-```
-XRD = Detector(CuKa1, molecule=[sro, sro_sto])
-XRD.align(nref = [sro(0,0,1), sro_sto(0,0,1)])
-SF  = XRD.SF()
-#
-plt.plot(XRD.TTHETA, np.abs(SF[0])**2, label='sro', linestyle='dashed')
+plt.plot(TTHETA, np.abs(ngo.SF(Q, E)), color='#800020', label='ngo')
+plt.plot(TTHETA, np.abs(nno.SF(Q, E)), color='#008060', label='nno')
+plt.plot(TTHETA, np.abs(sto.SF(Q, E)), color='#006080', label='sto')
 ```
 
-#### SN scan
+#### Film scan (Intensity)
 ```
-XRD = Detector(CuKa1, film=[Film(sto, (1,1,inf)), SRO])
-XRD.align(nref = [STO(0,0,1), SRO(0,0,1)])
-SN  = XRD.SN()
-#
-plt.plot(XRD.DEGREE, np.abs(SN[0])**2, label='STO_substrate')
+plt.semilogy(TTHETA, WO3.I(Q), color='#006080', label=f"WO3 Bulk", linestyle='dashed')
+plt.semilogy(TTHETA, YAP_Bulk.I(Q), color='#008060', label=f"YAP Bulk", linestyle='dashed')
 ```
 
-#### ER scan
+#### Sample scan (Intensity)
 ```
-XRD = Detector(CuKa1, film=Film(sto, (1,1,inf)))
-XRD.align(nref = STO(0,0,1))
-ER  = XRD.ER()
-#
-plt.plot(XRD.DEGREE, np.abs(ER)**2, label='STO_substrate')
+plt.semilogy(TTHETA, GEN_WO3YAP(N).I(Q), color='#800020', label=f"WO3/YAP; N={N}")
 ```
 
