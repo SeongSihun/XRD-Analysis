@@ -2,6 +2,8 @@
 
 ## Usage
 
+### import
+
 ```python
 from CTR import *
 ```
@@ -18,14 +20,6 @@ from matplotlib.colors import LogNorm
 # class : ['Xray', 'Xray2d', 'Atom', 'Molecule', 'SC', 'FCC', 'BCC', 'Perovskite', 'Film', 'Sample']
 ```
 <br>
-
-### Xray Setting
-```python
-XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
-Q = XRD.Q(1,0,0) # (100) Scan
-E = XRD.Energy
-TTHETA = XRD.TTHETA
-```
 
 ### Atoms
 ```python
@@ -84,6 +78,16 @@ NNONGOSTO = NNO/NGO/STO_Bulk(1,0,0)
 
 ---
 
+### Xray Setting
+```python
+XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
+Q = XRD.Q(1,0,0) # (100) Scan
+E = XRD.Energy
+TTHETA = XRD.TTHETA
+```
+
+<br>
+
 ### Scan
 
 #### Atom scan (AFF)
@@ -100,7 +104,7 @@ plt.plot(TTHETA, np.abs(yap.SF(Q, E)))
 plt.plot(TTHETA, np.abs(wo3.SF(Q, E)))
 ```
 
-#### Film scan (Intensity)
+#### Film scan [Intensity]
 ```python
 # 2 ways
 plt.semilogy(TTHETA, WO3.I(Q, E))
@@ -110,13 +114,22 @@ plt.semilogy(XRD.TTHETA, XRD.I(WO3))
 plt.semilogy(XRD.TTHETA, XRD.I(YAP_Bulk))
 ```
 
-#### Sample scan (Intensity)
+#### Sample scan [Intensity]
 ```python
 # 2 ways
 plt.semilogy(TTHETA, WO3YAP.I(Q, E))
 # New Version
 plt.semilogy(XRD.TTHETA, XRD.I(WO3YAP))
 ```
+
+### ✻ New notations for [Intensity] scan ✻
+```python
+XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
+XRD.Q(1,0,0) # (100) Scan setting
+plt.semilogy(XRD.TTHETA, XRD.I(YAP_Bulk))
+plt.semilogy(XRD.TTHETA, XRD.I(WO3YAP))
+```
+
 <br>
 
 ---
