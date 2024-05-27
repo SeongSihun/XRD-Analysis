@@ -19,55 +19,56 @@ def norm(v):
         return np.linalg.norm(v, axis=1)
     else: return np.linalg.norm(v)
 def Crit(v):
-	n = np.where(v==0, 1, v)
-	print(n)
-	v = np.where(v==0, 0, 1/n)
-	v[(np.where(v==0)[0]+1)%3] *= -1
-	return v
+    n = np.where(v==0, 1, v)
+    print(n)
+    v = np.where(v==0, 0, 1/n)
+    v[(np.where(v==0)[0]+1)%3] *= -1
+    return v
 def Orthogonal(v):
-	z = np.count_nonzero(v)
-	if z==1:
-		M = vec([0, 1, 0], [0, 0, 1], [1, 0, 0])
-		return M@v, M@M@v
-	if z==2: o = Crit(v)
-	if z==3: o = Crit(vec(*v[0:2], 0))
-	return (o, np.cross(v, o))
+    z = np.count_nonzero(v)
+    if z==1:
+        M = vec([0, 1, 0], [0, 0, 1], [1, 0, 0])
+        return M@v, M@M@v
+    if z==2: o = Crit(v)
+    if z==3: o = Crit(vec(*v[0:2], 0))
+    return (o, np.cross(v, o))
 
 ################################################################################################################
 
 class Xray:
-	CuKa1  = 1.5406
-	CuKa2  = 1.544390
-	def __init__(self, wavelength=CuKa1, Energy=None, TTHETA=np.rad2deg(np.linspace(0, pi, 1024)[1:])):
-		(h, c, e) = (6.62607015E-34, 299792458, 1.6021773349E-19)
-		if Energy==None:
-			self.wavelength = wavelength # Å unit
-			self.Energy = h * c / (wavelength * 1E-10) / e
-		else:
-			self.Energy = Energy
-			self.wavelength = h * c / (Energy * 1E-10) / e
-		self.k = 2 * pi / self.wavelength
-		self.TTHETA = TTHETA
-		self.G = 2 * self.k * np.sin(np.deg2rad(self.TTHETA)/2)
-	def Q(self, *ref):
-		self.Q = span(self.G, unit(*ref))
-		return self.Q
-	def pseudoQ(self, *ref):
-		ref = vec([1, 1, 0], [-1, 1, 0], [0, 0, 1]) @ vec(*ref) / 2
-		return self.Q(*ref)
-	PQ = pseudoQ # Alias
-	def HKL(self, molecule): return self.Q * molecule.abc / 2 / pi
-	def I(self, sample): return sample.I(self.Q, self.Energy)
+    CuKa1  = 1.5406
+    CuKa2  = 1.544390
+    def __init__(self, wavelength=CuKa1, Energy=None, TTHETA=np.rad2deg(np.linspace(0, pi, 1024)[1:])):
+        (h, c, e) = (6.62607015E-34, 299792458, 1.6021773349E-19)
+        if Energy==None:
+            self.wavelength = wavelength # Å unit
+            self.Energy = h * c / (wavelength * 1E-10) / e
+        else:
+            self.Energy = Energy
+            self.wavelength = h * c / (Energy * 1E-10) / e
+        self.k = 2 * pi / self.wavelength
+        self.TTHETA = TTHETA
+        self.G = 2 * self.k * np.sin(np.deg2rad(self.TTHETA)/2)
+    def Q(self, *ref):
+        self.q = span(self.G, unit(*ref))
+        return self.q
+    def pseudoQ(self, *ref):
+        ref = vec([1, 1, 0], [-1, 1, 0], [0, 0, 1]) @ vec(*ref) / 2
+        return self.Q(*ref)
+    PQ = pseudoQ # Alias
+    def HKL(self, molecule): return self.q * molecule.abc / 2 / pi
+    def I(self, sample): return sample.I(self.q, self.Energy)
+    def __call__(self, sample): return self.I(sample)
+
 
 class Xray2d(Xray):
-	def Q(self, *ref):
-		ux, uy = Orthogonal(unit(*ref))
-		self.X, self.Y = np.meshgrid(self.G,self.G)
-		self.Q = (span(self.X, ux)+span(self.Y, uy)).reshape(self.X.size, 3)
-		return self.Q
-	def I(self, sample):
-		return sample.I(self.Q, self.Energy).reshape(self.X.shape)
-
+    def Q(self, *ref):
+        ux, uy = Orthogonal(unit(*ref))
+        self.X, self.Y = np.meshgrid(self.G,self.G)
+        self.q = (span(self.X, ux)+span(self.Y, uy)).reshape(self.X.size, 3)
+        return self.q
+    def I(self, sample): return sample.I(self.q, self.Energy).reshape(self.X.shape)
+    
 ################################################################################################################
 
 class Atom():
@@ -102,7 +103,7 @@ class Atom():
         (a1, b1, a2, b2, a3, b3, a4, b4, c) = self.COEF
         f0 = self.f + sum(c + vec(*[a * exp(-1 * b * np.power(norm(Q) / (4 * pi), 2)) for a, b in zip((a1, a2, a3, a4), (b1, b2, b3, b4))]))
         return f0 / self.__den__
-
+#
 class Molecule():
     def __init__(self, abc, structure):
         self.abc = vec(*abc)
@@ -126,7 +127,6 @@ class Molecule():
     def const_volume_abc(self, film_abc, ref):
         ab = self.abc * (vec(1,1,1)-unit(*ref))
         return ab + ( np.prod(film_abc) / np.prod(np.where(ab==0, 1, ab)) ) * unit(*ref)
-
     #
     def Q2HKL(self, Q):
         return Q * self.abc / 2 / pi
@@ -141,7 +141,7 @@ class SC(Molecule):
             X(0, 0, 0)
         ]
         super().__init__(abc, structure)
-
+    #
 class BCC(Molecule):
     def __init__(self, abc, AB):
         A, B = AB
@@ -150,7 +150,7 @@ class BCC(Molecule):
             B(0.5, 0.5, 0.5)
         ]
         super().__init__(abc, structure)
-
+    #
 class FCC(Molecule):
     def __init__(self, abc, X):
         structure = [
@@ -158,7 +158,7 @@ class FCC(Molecule):
             *[X(*rj) for rj in (np.ones([3, 3]) - np.eye(3))/2]
         ]
         super().__init__(abc, structure)
-
+    #
 class Perovskite(Molecule):
     def __init__(self, abc, ABO):
         A, B, O = ABO
@@ -170,30 +170,48 @@ class Perovskite(Molecule):
             # *[(O/2)(*rj) for rj in (np.ones([6,3])+vec(*np.eye(3), *-np.eye(3)))/2 ]
         ]
         super().__init__(abc, structure)
-
+#
 class Film():
-    def __init__(self, molecule, N):
-        # self.molecule, self.ref = molecule
-        self.molecule = molecule
-        self.N = vec(*N)
-    def __call__(self, *args): 
-        return Sample(self, nref=args)
-    def __truediv__(self, substrate):
-        # Film/Sample
-        if 'Sample' in str(substrate.__class__):
-            return Sample(self, *substrate.FILMS, nref=substrate.nref)
-        else:   # Film/Film
-            return Sample(self, substrate, nref=None)
-    #
-    def SN(self, Q): # X = Q @ molecule.abc
-        IX = 1j * Q * self.molecule.abc
-        Noinf = np.where(self.N == inf, 0, self.N)
-        NUM = np.where(exp(IX)==1, Noinf, 1-exp(IX*Noinf))
-        NUM = np.where(self.N == inf, -1, NUM)
-        DEN = np.where(exp(IX)==1, 1, 1-exp(IX))
-        return np.prod(NUM/DEN, axis=1)
-    def I(self, Q, E=Xray().Energy): return np.abs(self.molecule.SF(Q, E) * self.SN(Q)) ** 2
+	def __init__(self, molecule, N):
+		# self.molecule, self.ref = molecule
+		self.molecule = molecule
+		self.N = vec(*N)
+	def __call__(self, *args): return Sample(self, nref=args)
+	def __truediv__(self, substrate):
+		# Film/Sample
+		if 'Sample' in str(substrate.__class__):
+			return Sample(self, *substrate.FILMS, nref=substrate.nref)
+		else:   # Film/Film
+			return Sample(self, substrate, nref=None)
+	#
+	def SN(self, Q): # X = Q @ molecule.abc
+		IX = 1j * Q * self.molecule.abc
+		Noinf = np.where(self.N == inf, 0, self.N)
+		NUM = np.where(exp(IX)==1, Noinf, 1-exp(IX*Noinf))
+		NUM = np.where(self.N == inf, -1, NUM)
+		DEN = np.where(exp(IX)==1, 1, 1-exp(IX))
+		return np.prod(NUM/DEN, axis=1)
+	#
+	def F(self, Q, E=Xray().Energy): return self.molecule.SF(Q, E) * self.SN(Q)
+	def I(self, Q, E=Xray().Energy): return np.abs(self.F(Q, E)) ** 2
 
+class RoughCut(Film):
+	def __init__(self, molecule, N, nref, beta):
+		super().__init__(molecule, N)
+		self.nref = vec(*nref)
+		self.beta = beta
+	def SN(self, Q): # X = Q @ molecule.abc
+		IX = 1j * Q * self.molecule.abc
+		expIX = exp(IX)
+		Noinf = np.where(self.N == inf, 0, self.N)
+		NUM = np.where(expIX==1, Noinf, 1-exp(IX*Noinf))
+		NUM = np.where(self.N == inf, -1, NUM)
+		DEN = np.where(expIX==1, 1, 1-expIX)
+		# Roughness
+		NUMR = exp(Noinf * self.nref) * np.where(self.beta * expIX==1, -1, self.beta * expIX)
+		DENR = np.where(self.beta * expIX==1, 1, 1-self.beta*expIX)
+		return np.prod(NUM/DEN + NUMR/DENR, axis=1)
+#
 class Sample():
     def __init__(self, *films, nref):
         self.FILMS = films
@@ -207,12 +225,14 @@ class Sample():
         else:	# Sample/Film
             return Sample(*self.FILMS, substrate, nref=None)
     #
-    def I(self, Q, E=Xray().Energy):
-        I = self.substrate.I(Q, E)
+    def F(self, Q, E=Xray().Energy):
+        F = self.substrate.F(Q, E)
         PHI = np.zeros_like(Q).astype(dtype=complex)
         for film in self.film:
             IX  = 1j * Q * film.molecule.abc
-            expNIX = np.abs(np.prod(exp(PHI), axis=1)) ** 2
-            I += (expNIX * film.I(Q, E))
+            expNIX = np.prod(exp(PHI), axis=1)
+            F += (expNIX * film.F(Q, E))
             PHI += IX * (np.where(film.N==inf, 0, film.N) * self.nref)
-        return vec(*I)
+        return vec(*F)
+    #
+    def I(self, Q, E=Xray().Energy): return np.abs(self.F(Q, E)) ** 2

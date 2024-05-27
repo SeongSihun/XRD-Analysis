@@ -81,8 +81,9 @@ NNONGOSTO = NNO/NGO/STO_Bulk(1,0,0)
 ### Xray Setting
 ```python
 XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
-Q = XRD.Q(1,0,0) # (100) Scan
-E = XRD.Energy
+Q   = XRD.Q(1,0,0) # (100) Scan [1/Å unit]
+E   = XRD.Energy   # [eV unit]
+hkl = XRD.HKL(sto) # convert Q to hkl of molecule(sto)
 TTHETA = XRD.TTHETA
 ```
 
@@ -116,13 +117,15 @@ plt.semilogy(XRD.TTHETA, XRD.I(YAP_Bulk))
 
 #### Sample scan [Intensity]
 ```python
-# 2 ways
+# 3 ways
 plt.semilogy(TTHETA, WO3YAP.I(Q, E))
 # New Version
 plt.semilogy(XRD.TTHETA, XRD.I(WO3YAP))
+# Short Version.
+plt.semilogy(XRD.TTHETA, XRD(WO3YAP))
 ```
 
-### ✻ New notations for [Intensity] scan ✻
+### ✻ Recommendation for the [Intensity] scan ✻
 ```python
 XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
 XRD.Q(1,0,0) # (100) Scan setting
@@ -136,9 +139,9 @@ plt.semilogy(XRD.TTHETA, XRD.I(WO3YAP))
 
 ### 2D Scan (In-plane Data)
 ```python
-
 XRD2D = Xray2d()
 XRD2D.Q(1,0,0)  # In-plane(100) == (0kl) scan
 X, Y, I = XRD2D.X, XRD2D.Y, XRD2D.I(WO3/YAP_Bulk(1,0,0))
+# I = XRD2D(WO3/YAP_Bulk(1,0,0)) # Short Version
 plt.pcolor(X, Y, I, norm=LogNorm())
 ```
