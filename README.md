@@ -84,7 +84,7 @@ XRD = Xray(wavelength=Xray.CuKa1) # 1.5406 [Å unit]
 Q   = XRD.Q(1,0,0) # (100) Scan [1/Å unit]
 E   = XRD.Energy   # [eV unit]
 hkl = XRD.HKL(sto) # convert Q to hkl of molecule(sto)
-TTHETA = XRD.TTHETA
+TTHETA = XRD.TTHETA # 2θ
 ```
 
 <br>
