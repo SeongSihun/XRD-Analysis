@@ -1,8 +1,7 @@
-
-import numpy as np
 import json
 import traceback
 import pandas as pd
+import numpy as np
 
 ################################################################################################################
 
@@ -25,7 +24,6 @@ def norm(v):
 	else: return np.linalg.norm(v)
 def Crit(v):
 	n = np.where(v==0, 1, v)
-	print(n)
 	v = np.where(v==0, 0, 1/n)
 	v[(np.where(v==0)[0]+1)%3] *= -1
 	return v
@@ -48,7 +46,7 @@ class Xray:
 		self.wavelength = wavelength # Å unit
 		self.Energy = h * c / (wavelength * 1E-10) / e
 		self.k = 2 * pi / self.wavelength
-		self.G = np.linspace(-2*self.k, 2*self.k, Nq)
+		self.G = np.linspace(0, 2*self.k, Nq+1)[1:]
 		self.TTHETA = 2 * asin(self.G / 2 / self.k)
 		self.DEGREE = np.rad2deg(self.TTHETA)
 	def Q(self, *ref):
@@ -84,7 +82,7 @@ class Atom():
 	# File path
 	# https://lampz.tugraz.at/~hadley/ss1/crystaldiffraction/atomicformfactors/formfactors.php
 	PATH = "./DATA/sf"
-	AFF = pd.read_csv(f"{PATH}/AFF0.csv", delimiter='\s+').applymap(lambda x: x.strip() if isinstance(x, str) else x)
+	AFF = pd.read_csv(f"{PATH}/AFF0.csv", delimiter='\s+').apply(lambda x: x.strip() if isinstance(x, str) else x)
 	#
 	def __init__(self, Z, def_name=None):
 		self.Z = Z
@@ -108,21 +106,25 @@ class Atom():
 			differences = abs(f.iloc[:, 0] - E)
 			closest_row = f.loc[[differences.idxmin()]]
 			self.f = vec(closest_row.f1 + 1j * closest_row.f2)[0]
-			self.COEF = np.float_(Atom.AFF[Atom.AFF['Element'] == self.def_name].iloc[0].values[1:])
-		(a1, b1, a2, b2, a3, b3, a4, b4, c) = self.COEF
+			# self.COEF = np.float64(Atom.AFF[Atom.AFF['Element'] == self.def_name].iloc[0].values[1:])
+			self.COEF = Atom.AFF.iloc[np.where(np.char.strip([*Atom.AFF['Element']])==self.def_name)[0]].iloc[0,1:]
+		(a1, b1, a2, b2, a3, b3, a4, b4, c) = np.float64(self.COEF)
 		f0 = self.f + sum(c + vec(*[a * exp(-1 * b * np.power(norm(Q) / (4 * pi), 2)) for a, b in zip((a1, a2, a3, a4), (b1, b2, b3, b4))]))
 		return f0 / self.__den__
+
+class Empty(Atom):
+	def __init__(self):
+		self.Z = None
+		self.f = None
+	def aff(self, Q, E):
+		return np.zeros(len(Q))
 #
 class Molecule():
 	def __init__(self, abc, structure):
 		self.abc = vec(*abc)
 		self.structure = vec(*structure)
-		if structure == []: # vdw gap
-			self.atoms = []
-			self.Rj = []
-		else:
-			self.atoms = self.structure[:,0]
-			self.RJ = self.structure[:,1:] * self.abc
+		self.atoms = self.structure[:,0]
+		self.RJ = self.structure[:,1:] * self.abc
 	def __truediv__(self, substrate):
 		substrate, ref = substrate
 		return Molecule(
@@ -130,7 +132,12 @@ class Molecule():
 			structure = self.structure
 	)
 	def __add__(self, molecule):
-		return Molecule(max(self.abc, molecule.abc), [*self.structure, *molecule.structure])
+		return Molecule(np.where(self.abc>molecule.abc,self.abc, molecule.abc), [*self.structure, *molecule.structure])
+	def __mul__(self, vdw):
+		abc = self.abc * vdw.abc
+		structure = self.structure.copy()
+		structure[:,1:] = structure[:,1:] * vdw.abc
+		return Molecule(abc, structure)
 	def __call__(self, *args): return self, args
 	#
 	def pseudocubic(*abc):
@@ -147,6 +154,10 @@ class Molecule():
 		aff = vec(*[atom.aff(Q, E) for atom in self.atoms])
 		phase = (1j * self.RJ @ Q.T).astype(dtype=complex)
 		return sum(aff * exp(phase))
+	
+class vdW(Molecule):
+	def __init__(self, abc):
+		super().__init__(abc, [Empty()(0,0,0)])
 
 class SC(Molecule):
 	def __init__(self, abc, X):
@@ -227,7 +238,7 @@ class Sample():
 	def __init__(self, *films, nref):
 		self.FILMS = films
 		self.substrate = films[-1]
-		self.film = films[0:-1]
+		self.film = films[0:-1][::-1]
 		self.nref = nref
 	def __truediv__(self, substrate):
 		# Sample/Sample
@@ -241,13 +252,17 @@ class Sample():
 		PHI = np.zeros_like(Q).astype(dtype=complex)
 		for film in self.film:
 			IX  = 1j * Q * film.molecule.abc
+			# print('phase : ', IX[10])
 			expNIX = np.prod(exp(PHI), axis=1)
 			F += (expNIX * film.F(Q, E))
 			PHI += IX * (np.where(film.N==inf, 0, film.N) * self.nref)
+			# print('N : ', (np.where(film.N==inf, 0, film.N) * self.nref))
+
+			# print('phase : ', IX[10])
 		return vec(*F)
 	#
 	def I(self, Q, E=Xray().Energy): return np.abs(self.F(Q, E)) ** 2
 
 
 
-__all__ = ['Xray', 'Xray2d', 'Atom', 'Molecule', 'SC', 'FCC', 'BCC', 'Perovskite', 'Film', 'RoughCut', 'Sample']
+__all__ = ['Xray', 'Xray2d', 'Atom', 'Molecule', 'vdW','SC', 'FCC', 'BCC', 'Perovskite', 'Film', 'RoughCut', 'Sample']
